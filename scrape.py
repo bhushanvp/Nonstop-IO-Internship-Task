@@ -21,7 +21,7 @@ def get_page_urls(url):
         "Israel-Gaza war":"",
         "War in Ukraine":"",
         "Tech":"",
-        # "Science":"",
+        "Science":"",
         "Entertainment & Arts":"",
         "Health":""
     }
