@@ -21,7 +21,7 @@ def get_page_urls(url):
         "Israel-Gaza war":"",
         "War in Ukraine":"",
         "Tech":"",
-        "Science":"",
+        # "Science":"",
         "Entertainment & Arts":"",
         "Health":""
     }
@@ -99,6 +99,8 @@ async def main():
             if current_url not in all_article_urls:
                 unique_topic_urls.add(current_url)
                 all_article_urls.add(current_url)
+        
+        # unique_topic_urls = list(unique_topic_urls)[:10]
 
         article_urls[topic] = unique_topic_urls
 
@@ -107,6 +109,8 @@ async def main():
             os.makedirs(output_folder_topic)
 
         tasks.extend([scrape_and_save_article(url, output_folder_topic) for url in unique_topic_urls])
+
+    print(len(all_article_urls))
 
     await asyncio.gather(*tasks)
 
