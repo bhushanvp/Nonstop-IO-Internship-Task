@@ -3,6 +3,7 @@ import asyncio
 import aiohttp
 from bs4 import BeautifulSoup
 import requests
+import pandas as pd
 
 async def fetch(url):
     async with aiohttp.ClientSession() as session:
@@ -99,20 +100,22 @@ async def main():
             if current_url not in all_article_urls:
                 unique_topic_urls.add(current_url)
                 all_article_urls.add(current_url)
-        
-        # unique_topic_urls = list(unique_topic_urls)[:10]
 
         article_urls[topic] = unique_topic_urls
 
-        output_folder_topic = os.path.join(output_folder, topic)
-        if not os.path.exists(output_folder_topic):
-            os.makedirs(output_folder_topic)
-
-        tasks.extend([scrape_and_save_article(url, output_folder_topic) for url in unique_topic_urls])
-
-    print(len(all_article_urls))
+        tasks.extend([scrape_and_save_article(url, output_folder) for url in unique_topic_urls])
 
     await asyncio.gather(*tasks)
+
+    # Save URLs, sections, and file names to CSV using pandas
+    csv_file = os.path.join(output_folder, 'article_data.csv')
+    save_data_to_csv_pandas(article_urls, csv_file)
+
+def save_data_to_csv_pandas(data, csv_file):
+    data_flat = [(url, section, f'{hash(url)}.txt') 
+                 for section, urls in data.items() for url in urls]
+    df = pd.DataFrame(data_flat, columns=['URL', 'Section', 'File_Name'])
+    df.to_csv(csv_file, index=False)
 
 if __name__ == '__main__':
     asyncio.run(main())
