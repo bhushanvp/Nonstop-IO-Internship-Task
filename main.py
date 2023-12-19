@@ -5,6 +5,11 @@ from bs4 import BeautifulSoup
 import requests
 import pandas as pd
 from urllib.parse import urlparse
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
 async def fetch(url):
     async with aiohttp.ClientSession() as session:
@@ -35,7 +40,7 @@ def get_page_urls(url):
             heading = heading.text.strip()
             if heading in sections:
                 sections[heading] = url[:-5] + page['href']
-            
+
     return sections
 
 async def get_article_urls(main_url):
@@ -63,7 +68,7 @@ async def scrape_article(main_url):
     soup = BeautifulSoup(html, 'html.parser')
 
     paragraphs = soup.find_all('p', class_='ssrcss-1q0x1qg-Paragraph e1jhz7w10')
-    
+
     article_text = ' '.join(paragraph.text for paragraph in paragraphs)
 
     return article_text
@@ -78,15 +83,26 @@ async def scrape_and_save_article(url, output_folder):
     if article_text is not None:
         save_data(article_text, os.path.join(output_folder, generate_filename(url)))
 
+def generate_filename(url):
+    parsed_url = urlparse(url)
+    path_parts = parsed_url.path.split('/')
+    filename = path_parts[-1] if path_parts[-1] else "index"
+    return f"{filename}.txt"
+
+def save_data_to_csv_pandas(data, csv_file):
+    data_flat = [(url, section, generate_filename(url)) for section, urls in data.items() for url in urls]
+    df = pd.DataFrame(data_flat, columns=['URL', 'Section', 'File_Name'])
+    df.to_csv(csv_file, index=False)
+
 async def main():
     main_url = 'https://www.bbc.com/news'
     output_folder = 'scraped_data'
-    
+
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
     page_urls = get_page_urls(main_url)
-    
+
     article_urls = dict(set())
     all_article_urls = set()
 
@@ -109,17 +125,68 @@ async def main():
 
     csv_file = os.path.join(output_folder, 'article_data.csv')
     save_data_to_csv_pandas(article_urls, csv_file)
+    
+    base_folder = "./scraped_data"
 
-def generate_filename(url):
-    parsed_url = urlparse(url)
-    path_parts = parsed_url.path.split('/')
-    filename = path_parts[-1] if path_parts[-1] else "index"
-    return f"{filename}.txt"
+    df = pd.read_csv(csv_file)
 
-def save_data_to_csv_pandas(data, csv_file):
-    data_flat = [(url, section, generate_filename(url)) for section, urls in data.items() for url in urls]
-    df = pd.DataFrame(data_flat, columns=['URL', 'Section', 'File_Name'])
-    df.to_csv(csv_file, index=False)
+    file_names = df['File_Name'].tolist()
+    labels = df['Section'].tolist()
+
+    data = []
+    filtered_labels = []
+    filtered_filenames = []
+
+    for file_name, label in zip(file_names, labels):
+        file_path = os.path.join(base_folder, file_name)
+
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as file:
+                text_content = file.read()
+                data.append(text_content)
+                filtered_labels.append(label)
+                filtered_filenames.append(file_name)
+
+    class_counts = pd.Series(filtered_labels).value_counts().to_dict()
+
+    labels = filtered_labels
+
+    file_data_df = pd.DataFrame({'File_Name': filtered_filenames, 'Text': data})
+
+    df_train, df_test, y_train, y_test = train_test_split(file_data_df, labels, test_size=0.2, random_state=42)
+
+    X_train = df_train.drop('File_Name', axis=1)['Text']
+    X_test = df_test.drop('File_Name', axis=1)['Text']
+
+    vectorizer = CountVectorizer(stop_words=list(ENGLISH_STOP_WORDS))
+    X_train_vectorized = vectorizer.fit_transform(X_train)
+    X_test_vectorized = vectorizer.transform(X_test)
+
+    classifier = MultinomialNB()
+    classifier.fit(X_train_vectorized, y_train)
+
+    predictions = classifier.predict(X_test_vectorized)
+
+    results_df = pd.DataFrame({
+        'File_Name': df_test['File_Name'],
+        'Actual_Label': y_test,
+        'Predicted_Label': predictions
+    })
+
+    if not os.path.exists('results/'):
+        os.mkdir('results')
+
+    results_csv = 'results/classification_results.csv'
+    results_df.to_csv(results_csv, index=False)
+
+    print("Results DataFrame:")
+    print(results_df)
+
+    accuracy = accuracy_score(y_test, predictions)
+    print(f"\nAccuracy: {accuracy:.2f}")
+
+    print("\nClassification Report:")
+    print(classification_report(y_test, predictions))
 
 if __name__ == '__main__':
     asyncio.run(main())
