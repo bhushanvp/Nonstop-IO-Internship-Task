@@ -179,9 +179,6 @@ async def main():
     results_csv = 'results/classification_results.csv'
     results_df.to_csv(results_csv, index=False)
 
-    print("Results DataFrame:")
-    print(results_df)
-
     accuracy = accuracy_score(y_test, predictions)
     print(f"\nAccuracy: {accuracy:.2f}")
 

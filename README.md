@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project aims to scrape and classify articles from a news website. It involves web scraping to collect article data and applying a machine learning model (Naive Bayes) to classify articles into different sections.
+This project aims to scrape and classify articles from the [BBC News website](https://www.bbc.com/news). It involves web scraping to collect article data and applying a machine learning model (Naive Bayes) to classify articles into different sections.
 
 ## Features
 
@@ -21,10 +21,13 @@ This project aims to scrape and classify articles from a news website. It involv
 
 ### 1. Clone the Repository
 
+Open a terminal and hit the following commands to clone this repo
 ```bash
 git clone https://github.com/bhushanvp/Nonstop-IO-Internship-Task.git
 cd Nonstop-IO-Internship-Task
 ```
+![clone-repo](./screenshots/clone-repo.png)
+
 
 ### 2. Create a virtual environment
 
@@ -32,15 +35,21 @@ cd Nonstop-IO-Internship-Task
 python3 -m venv venv
 source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
 ```
+![create-venv](./screenshots/create-venv.png)
+
 
 ### 3. Install Requirements
 
 ```bash
 pip install -r requirements.txt
 ```
+![install-requirements](./screenshots/install-requirements.png)
+![project-structure](./screenshots/project-structure.png)
+
 
 ### 4. Run the project
 
 ```bash
 python3 main.py
 ```
+![run-project](./screenshots/run-project.png)
